@@ -1,4 +1,5 @@
 using UnityEngine;
+using DG.Tweening;
 
 public class GameManager : MonoBehaviour
 {
@@ -9,6 +10,8 @@ public class GameManager : MonoBehaviour
     public Transform playerCardArea;
 
     public Transform dealerCardArea;
+
+    public Transform deckPosition;
 
     public enum GameState
     {
@@ -26,6 +29,10 @@ public class GameManager : MonoBehaviour
     Hand playerHand;
 
     Hand dealerHand;
+
+    GameObject hiddenDealerCardObject;
+
+    Card hiddenDealerCardData;
 
     void Start()
     {
@@ -68,11 +75,15 @@ public class GameManager : MonoBehaviour
         SpawnCardVisual(dealerCard1, dealerCardArea);
 
         // DEALER CARD 2
-        Card dealerCard2 = deckManager.DrawCard();
+        hiddenDealerCardData = deckManager.DrawCard();
 
-        dealerHand.AddCard(dealerCard2);
+        dealerHand.AddCard(hiddenDealerCardData);
 
-        SpawnCardVisual(dealerCard2, dealerCardArea);
+        hiddenDealerCardObject = SpawnCardVisual(
+            hiddenDealerCardData,
+            dealerCardArea,
+            true
+        );
 
         currentState = GameState.PlayerTurn;
 
@@ -107,17 +118,56 @@ public class GameManager : MonoBehaviour
         Debug.Log("Dealer Total: " + dealerHand.CalculateHandValue());
     }
 
-    void SpawnCardVisual(Card cardData, Transform parentArea)
+    GameObject SpawnCardVisual(Card cardData, Transform parentArea, bool hidden = false)
     {
         GameObject newCard = Instantiate(cardPrefab, parentArea);
 
+        AudioManager.Instance.PlayCardDeal();
+
         CardDisplay cardDisplay = newCard.GetComponent<CardDisplay>();
 
-        cardDisplay.SetupCard(cardData);
+        if (hidden)
+        {
+            Sprite backSprite = Resources.Load<Sprite>("Cards/card_back");
+
+            cardDisplay.cardImage.sprite = backSprite;
+        }
+        else
+        {
+            cardDisplay.SetupCard(cardData);
+        }
+
+        RectTransform rectTransform = newCard.GetComponent<RectTransform>();
+
+        int cardIndex = parentArea.childCount - 1;
+
+        float spacing = 100f;
+
+        Vector2 finalPosition = new Vector2(
+            cardIndex * spacing,
+            0f
+        );
+
+        Vector2 startPosition =
+            parentArea.InverseTransformPoint(deckPosition.position);
+
+        rectTransform.anchoredPosition = startPosition;
+
+        rectTransform.localScale = Vector3.zero;
+
+        rectTransform.DOAnchorPos(finalPosition, 0.4f)
+            .SetEase(Ease.OutCubic);
+
+        rectTransform.DOScale(Vector3.one, 0.3f)
+            .SetEase(Ease.OutBack);
+
+        return newCard;
     }
 
     public void PlayerHit()
     {
+        AudioManager.Instance.PlayButtonClick();
+        
         if (currentState != GameState.PlayerTurn)
             return;
 
@@ -137,6 +187,8 @@ public class GameManager : MonoBehaviour
         {
             Debug.Log("PLAYER BUSTED!");
 
+            AudioManager.Instance.PlayLose();
+
             uiManager.ShowResult("Player Busted! Dealer Wins!");
 
             currentState = GameState.RoundOver;
@@ -150,6 +202,8 @@ public class GameManager : MonoBehaviour
 
     public void PlayerStand()
     {
+        AudioManager.Instance.PlayButtonClick();
+
         if (currentState != GameState.PlayerTurn)
             return;
 
@@ -162,6 +216,8 @@ public class GameManager : MonoBehaviour
 
     void DealerTurn()
     {
+        RevealDealerHiddenCard();
+
         Debug.Log("===== DEALER TURN =====");
 
         while (dealerHand.CalculateHandValue() < 17)
@@ -195,14 +251,20 @@ public class GameManager : MonoBehaviour
 
         if (dealerTotal > 21)
         {
+            AudioManager.Instance.PlayWin();
+
             uiManager.ShowResult("Dealer Busts! Player Wins!");
         }
         else if (playerTotal > dealerTotal)
         {
+            AudioManager.Instance.PlayWin();
+
             uiManager.ShowResult("Player Wins!");
         }
         else if (dealerTotal > playerTotal)
         {
+            AudioManager.Instance.PlayLose();
+
             uiManager.ShowResult("Dealer Wins!");
         }
         else
@@ -215,7 +277,14 @@ public class GameManager : MonoBehaviour
 
     public void StartNewRound()
     {
+        StartCoroutine(StartNewRoundCoroutine());
+    }
+
+    System.Collections.IEnumerator StartNewRoundCoroutine()
+    {
         ClearCardVisuals();
+
+        yield return null;
 
         playerHand = new Hand();
 
@@ -226,14 +295,22 @@ public class GameManager : MonoBehaviour
 
     void ClearCardVisuals()
     {
-        foreach (Transform child in playerCardArea)
+        for (int i = playerCardArea.childCount - 1; i >= 0; i--)
         {
-            Destroy(child.gameObject);
+            Destroy(playerCardArea.GetChild(i).gameObject);
         }
 
-        foreach (Transform child in dealerCardArea)
+        for (int i = dealerCardArea.childCount - 1; i >= 0; i--)
         {
-            Destroy(child.gameObject);
+            Destroy(dealerCardArea.GetChild(i).gameObject);
         }
+    }
+
+    void RevealDealerHiddenCard()
+    {
+        CardDisplay hiddenCardDisplay =
+            hiddenDealerCardObject.GetComponent<CardDisplay>();
+
+        hiddenCardDisplay.SetupCard(hiddenDealerCardData);
     }
 }

@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 public class CardDisplay : MonoBehaviour
 {
-    Image cardImage;
+    public Image cardImage;
 
     void Awake()
     {
