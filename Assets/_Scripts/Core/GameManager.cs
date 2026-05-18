@@ -16,7 +16,7 @@ public class GameManager : MonoBehaviour
 
     [Header("Betting System")]
 
-    public int playerBalance = 1000;
+    public int playerBalance;
 
     public int currentBet = 0;
 
@@ -46,6 +46,8 @@ public class GameManager : MonoBehaviour
         deckManager = GetComponent<DeckManager>();
 
         uiManager = FindAnyObjectByType<UIManager>();
+
+        playerBalance = GameDataManager.Instance.playerBalance;
 
         playerHand = new Hand();
 
@@ -305,6 +307,8 @@ public class GameManager : MonoBehaviour
 
         uiManager.UpdateBetUI(playerBalance, currentBet);
 
+        GameDataManager.Instance.playerBalance = playerBalance;
+
         Invoke(nameof(PrepareNextRound), 2f);
     }
 
@@ -374,6 +378,8 @@ public class GameManager : MonoBehaviour
 
         playerBalance -= amount;
 
+        GameDataManager.Instance.playerBalance = playerBalance;
+
         currentBet += amount;
 
         uiManager.UpdateBetUI(playerBalance, currentBet);
@@ -403,6 +409,8 @@ public class GameManager : MonoBehaviour
             return;
 
         playerBalance += currentBet;
+
+        GameDataManager.Instance.playerBalance = playerBalance;
 
         currentBet = 0;
 
