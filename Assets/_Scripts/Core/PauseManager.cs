@@ -14,6 +14,11 @@ public class PauseManager : MonoBehaviour
 
     public void TogglePause()
     {
+        if(AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayButtonClick();
+        }
+
         isPaused = !isPaused;
 
         pausePanel.SetActive(isPaused);
@@ -30,6 +35,11 @@ public class PauseManager : MonoBehaviour
 
     public void ResumeGame()
     {
+        if(AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayButtonClick();
+        }
+
         isPaused = false;
 
         pausePanel.SetActive(false);
@@ -39,6 +49,11 @@ public class PauseManager : MonoBehaviour
 
     public void MainMenu()
     {
+        if(AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayButtonClick();
+        }
+
         Time.timeScale = 1f;
 
         SceneManager.LoadScene("MainMenu_Scene");
@@ -46,6 +61,11 @@ public class PauseManager : MonoBehaviour
 
     public void QuitGame()
     {
+        if(AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayButtonClick();
+        }
+
         Application.Quit();
 
         Debug.Log("QUIT GAME");
