@@ -10,15 +10,15 @@ public class UIManager : MonoBehaviour
 
     public TextMeshProUGUI resultText;
 
-    public Button newRoundButton;
+    public TextMeshProUGUI balanceText;
+
+    public TextMeshProUGUI betText;
 
     public void UpdateScores(int playerScore, int dealerScore)
     {
         playerScoreText.text = "Player: " + playerScore;
 
         dealerScoreText.text = "Dealer: " + dealerScore;
-
-        newRoundButton.gameObject.SetActive(true);
     }
 
     public void ShowResult(string resultMessage)
@@ -31,7 +31,12 @@ public class UIManager : MonoBehaviour
     public void HideResult()
     {
         resultText.gameObject.SetActive(false);
+    }
 
-        newRoundButton.gameObject.SetActive(false);
+    public void UpdateBetUI(int balance, int bet)
+    {
+        balanceText.text = "Balance: $" + balance;
+
+        betText.text = "Bet: $" + bet;
     }
 }

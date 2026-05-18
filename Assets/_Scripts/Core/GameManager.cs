@@ -13,11 +13,18 @@ public class GameManager : MonoBehaviour
 
     public Transform deckPosition;
 
+
+    [Header("Betting System")]
+
+    public int playerBalance = 1000;
+
+    public int currentBet = 0;
+
     public enum GameState
     {
+        BettingPhase,
         PlayerTurn,
         DealerTurn,
-        RoundOver
     }
 
     public GameState currentState;
@@ -44,7 +51,9 @@ public class GameManager : MonoBehaviour
 
         dealerHand = new Hand();
 
-        StartRound();
+        uiManager.UpdateBetUI(playerBalance, currentBet);
+
+        currentState = GameState.BettingPhase;
     }
 
     void StartRound()
@@ -91,7 +100,7 @@ public class GameManager : MonoBehaviour
 
         uiManager.UpdateScores(
             playerHand.CalculateHandValue(),
-            dealerHand.CalculateHandValue()
+            GetVisibleDealerValue()
         );
 
         ShowHands();
@@ -116,6 +125,14 @@ public class GameManager : MonoBehaviour
         }
 
         Debug.Log("Dealer Total: " + dealerHand.CalculateHandValue());
+    }
+
+    int GetVisibleDealerValue()
+    {
+        if(dealerHand.cards.Count <= 0)
+            return 0;
+
+        return dealerHand.cards[0].value;
     }
 
     GameObject SpawnCardVisual(Card cardData, Transform parentArea, bool hidden = false)
@@ -191,12 +208,18 @@ public class GameManager : MonoBehaviour
 
             uiManager.ShowResult("Player Busted! Dealer Wins!");
 
-            currentState = GameState.RoundOver;
+            currentBet = 0;
+
+            uiManager.UpdateBetUI(playerBalance, currentBet);
+
+            Invoke(nameof(PrepareNextRound), 2f);
+
+            return;
         }
 
         uiManager.UpdateScores(
             playerHand.CalculateHandValue(),
-            dealerHand.CalculateHandValue()
+            GetVisibleDealerValue()
         );
     }
 
@@ -251,12 +274,16 @@ public class GameManager : MonoBehaviour
 
         if (dealerTotal > 21)
         {
+            playerBalance += currentBet * 2;
+
             AudioManager.Instance.PlayWin();
 
             uiManager.ShowResult("Dealer Busts! Player Wins!");
         }
         else if (playerTotal > dealerTotal)
         {
+            playerBalance += currentBet * 2;
+
             AudioManager.Instance.PlayWin();
 
             uiManager.ShowResult("Player Wins!");
@@ -269,10 +296,16 @@ public class GameManager : MonoBehaviour
         }
         else
         {
+            playerBalance += currentBet;
+
             uiManager.ShowResult("Push! It's a Tie!");
         }
 
-        currentState = GameState.RoundOver;
+        currentBet = 0;
+
+        uiManager.UpdateBetUI(playerBalance, currentBet);
+
+        Invoke(nameof(PrepareNextRound), 2f);
     }
 
     public void StartNewRound()
@@ -306,11 +339,73 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    void PrepareNextRound()
+    {
+        ClearCardVisuals();
+
+        playerHand = new Hand();
+
+        dealerHand = new Hand();
+
+        uiManager.UpdateScores(0, 0);
+
+        uiManager.HideResult();
+
+        currentState = GameState.BettingPhase;
+    }
+
     void RevealDealerHiddenCard()
     {
         CardDisplay hiddenCardDisplay =
             hiddenDealerCardObject.GetComponent<CardDisplay>();
 
         hiddenCardDisplay.SetupCard(hiddenDealerCardData);
+    }
+
+    public void PlaceBet(int amount)
+    {
+        AudioManager.Instance.PlayButtonClick();
+
+        if(currentState != GameState.BettingPhase)
+            return;
+
+        if(playerBalance < amount)
+            return;
+
+        playerBalance -= amount;
+
+        currentBet += amount;
+
+        uiManager.UpdateBetUI(playerBalance, currentBet);
+    }
+
+    public void DealCards()
+    {
+        AudioManager.Instance.PlayButtonClick();
+
+        if(currentState != GameState.BettingPhase)
+            return;
+
+        if(currentBet <= 0)
+            return;
+
+        StartNewRound();
+    }
+
+    public void ClearBet()
+    {
+        AudioManager.Instance.PlayButtonClick();
+
+        if(currentState != GameState.BettingPhase)
+            return;
+
+        if(currentBet <= 0)
+            return;
+
+        playerBalance += currentBet;
+
+        currentBet = 0;
+
+        uiManager.UpdateBetUI(playerBalance, currentBet);
     }
 }
